@@ -14,10 +14,11 @@ the length of LIS for {10, 22, 9, 33, 21, 50, 41, 60, 80} is 6 and LIS is {10, 2
 
 func main() {
 	a := []int{10, 22, 9, 33, 21, 50, 41, 60, 80, 41, 60, 9}
-	fmt.Println(lisOSIntuitive(a))
-	fmt.Println(lisOSTopDown(a))
-	fmt.Println(lisBottomUp(a))
-	fmt.Println(lis(a))
+	b := []int{10, 22, 9, 90, 33, 21, 50, 60, 2, 80, 81, 82, 85}
+	fmt.Println(lisOSIntuitive(a), lisOSIntuitive(b))
+	fmt.Println(lisOSTopDown(a), lisOSTopDown(b))
+	fmt.Println(lisBottomUp(a), lisBottomUp(b))
+	fmt.Println(lis(a), lis(b))
 }
 
 /*
@@ -32,7 +33,8 @@ Thus, we see the LIS problem satisfies the optimal substructure property as the 
 problem can be solved using solutions to subproblems
 */
 func lisOSIntuitive(a []int) int {
-	return lisOSIntuitiveHelper(a)
+	_, len := lisOSIntuitiveHelper(a)
+	return len
 }
 
 func max(x, y int) int {
@@ -45,56 +47,60 @@ func max(x, y int) int {
 // Time complexity: exponential
 // For lis(n) -> lis(n-1), lis(n-2), ..., lis(1)
 //     lis(n-1) -> lis(n-2), ..., lis(1)
-func lisOSIntuitiveHelper(a []int) int {
-	length := len(a)
-	if length == 1 {
+// Returns first value is the max LIS of current element
+//         second value is the max LIS of all elements in [0...n-1]
+func lisOSIntuitiveHelper(a []int) (int, int) {
+	n := len(a)
+	if n == 1 {
 		// The first element
-		return 1
+		return 1, 1
 	}
 
+	// Find the LIS from 0 to n - 1 (exluding n - 1)
+	// Set current LIS to MAX(L(j)) + 1 if 0 < j < n and a[j] < a[n - 1]
 	maxLen := 1
-	maxValue := a[0]
-	for i := 1; i < length; i++ {
-		len := lisOSIntuitiveHelper(a[:i])
+	maxLenSofar := 1
+	for i := 1; i < n; i++ {
+		len, lenSofar := lisOSIntuitiveHelper(a[:i])
+		maxLenSofar = max(maxLenSofar, lenSofar)
 		// The slicing doesn't include i, so the last element is at i-1
-		if a[length-1] > maxValue {
-			len++
+		if a[n-1] > a[i-1] && maxLen < len+1 {
+			maxLen = len + 1
 		}
-		maxValue = max(maxValue, a[i])
-		maxLen = max(maxLen, len)
 	}
 
-	return maxLen
+	return maxLen, max(maxLenSofar, maxLen)
 }
 
 // Memorization. Top Down
 // Time: O(N^2), space: O(N)
 func lisOSTopDown(a []int) int {
-	lookup := make([]int, len(a), len(a))
-	maxLen := lisOSTopDownHelper(a, lookup)
-	//fmt.Println(lookup)
-	return maxLen
+	n := len(a)
+	lis := make([]int, n, n)
+	lisOSTopDownHelper(a, lis)
+
+	//fmt.Println(lis)
+	return maxInArray(lis)
 }
 
-func lisOSTopDownHelper(a []int, lookup []int) int {
-	length := len(a)
-	if lookup[length-1] > 0 {
-		return lookup[length-1]
+// A little difference from the intuitive method.
+// There is no maxLenSofar returned because it has difficulty to get it.
+func lisOSTopDownHelper(a []int, lis []int) int {
+	n := len(a)
+	if lis[n-1] > 0 {
+		return lis[n-1]
 	}
 
 	maxLen := 1
-	maxValue := a[0]
-	for i := 1; i < length; i++ {
-		len := lisOSTopDownHelper(a[:i], lookup)
-		if a[length-1] > maxValue {
-			len++
+	for i := 1; i < n; i++ {
+		len := lisOSTopDownHelper(a[:i], lis)
+		if a[n-1] > a[i-1] && maxLen < len+1 {
+			maxLen = len + 1
 		}
-		maxLen = max(maxLen, len)
-		maxValue = max(maxValue, a[i])
 	}
 
 	// Store result of the subproblem
-	lookup[length-1] = maxLen
+	lis[n-1] = maxLen
 
 	return maxLen
 }
@@ -102,17 +108,14 @@ func lisOSTopDownHelper(a []int, lookup []int) int {
 // Tabulation approach. Bottom Up
 // Time: O(N^2), space: O(N)
 func lisBottomUp(a []int) int {
-	len := len(a)
-	lis := make([]int, len, len)
+	n := len(a)
+	lis := make([]int, n, n)
 	lis[0] = 1
 
-	for i := 1; i < len; i++ {
-		// By default, set current length of LIS to the value of previous element
-		lis[i] = lis[i-1]
-		maxValue := a[0]
+	for i := 1; i < n; i++ {
+		lis[i] = 1 // Init value
 		for j := 0; j < i; j++ {
-			maxValue = max(maxValue, a[j])
-			if maxValue < a[i] && lis[i] < lis[j]+1 {
+			if a[j] < a[i] && lis[i] < lis[j]+1 {
 				// Store solution of subproblem
 				lis[i] = lis[j] + 1
 			}
@@ -120,7 +123,17 @@ func lisBottomUp(a []int) int {
 	}
 
 	//fmt.Println(lis)
-	return lis[len-1]
+	return maxInArray(lis)
+}
+
+// Find maximum value in an array
+func maxInArray(a []int) int {
+	maxLen := a[0]
+	for i := 1; i < len(a); i++ {
+		maxLen = max(maxLen, a[i])
+	}
+
+	return maxLen
 }
 
 /*

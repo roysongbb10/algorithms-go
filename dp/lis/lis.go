@@ -56,8 +56,6 @@ func lisOSIntuitiveHelper(a []int) (int, int) {
 		return 1, 1
 	}
 
-	// Find the LIS from 0 to n - 1 (exluding n - 1)
-	// Set current LIS to MAX(L(j)) + 1 if 0 < j < n and a[j] < a[n - 1]
 	maxLen := 1
 	maxLenSofar := 1
 	for i := 1; i < n; i++ {
